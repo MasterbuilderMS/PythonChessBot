@@ -1,5 +1,6 @@
 """contains the pygame implementation of the chess game"""
 
+import os
 import pygame
 from board import Board, Piece
 
@@ -7,11 +8,32 @@ WIDTH = 800
 HEIGHT = 800
 SQSIZE = 80
 
+
 class PieceSprite(pygame.sprite.Sprite):
-    def __init__(self,piece: Piece,row,column):
+    def __init__(self, piece: Piece, origin):
         super().__init__()
         self.piece = piece
-        self.image =  
+        image_path = os.path.join(
+            f"assets/images/imgs-80px/{self.piece.color}_{self.piece.piece}.png"
+        )
+        self.image = pygame.image.load(image_path).convert_alpha()
+        self.rect = self.image.get_rect()
+        self.origin = origin
+        self.update_position()
+
+    def update_position(self):
+        self.rect.topleft = (
+            self.col * 80 + self.origin[0],
+            self.row * 80 + self.origin[0],
+        )  # Assuming 80px squares
+
+    @property
+    def row(self):
+        return self.piece.row
+
+    @property
+    def col(self):
+        return self.piece.column
 
 
 class BoardRenderer:
@@ -49,12 +71,17 @@ class Main:
         pygame.init()
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
         board_px = SQSIZE * 8
-        x_offset = (WIDTH - board_px) // 2
-        y_offset = (HEIGHT - board_px) // 2
+        self.x_offset = (WIDTH - board_px) // 2
+        self.y_offset = (HEIGHT - board_px) // 2
         self.board = Board()
-        self.board_renderer = BoardRenderer(self.screen, SQSIZE, origin=(x_offset, y_offset))  # fmt: off
+        self.board_renderer = BoardRenderer(self.screen, SQSIZE, origin=(self.x_offset, self.y_offset))  # fmt: off
         self.clock = pygame.time.Clock()
-        
+        self.pieces = pygame.sprite.Group()
+        self.update_pieces()
+
+    def update_pieces(self):
+        for i in self.board.pieces:
+            self.pieces.add(PieceSprite(i, (self.x_offset, self.y_offset)))
 
     def mainloop(self):
         running = True
@@ -63,7 +90,8 @@ class Main:
                 if event.type == pygame.QUIT:
                     running = False
 
-            self.board.draw_board()
+            self.board_renderer.draw_board()
+            self.pieces.draw(self.screen)
 
             pygame.display.update()
             self.clock.tick(60)
