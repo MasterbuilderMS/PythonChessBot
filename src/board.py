@@ -57,6 +57,13 @@ class Square:
         return False
 
 
+class Move:
+    def __init__(self, initial: Square, final: Square, piece: Piece = None):
+        self.initial: Square = initial
+        self.final: Square = final
+        self.piece: Piece = piece  # optional
+
+
 class Board(object):
     def __init__(self):
         self.board = [[Square(i, j) for i in range(8)] for j in range(8)]
@@ -95,6 +102,12 @@ class Board(object):
                 ]
             ):
                 self.board[row][col].piece = Piece(piece, row, col, color)
+
+    def valid_moves(self):
+        """
+        Returns a list of every possible valid move
+        """
+        # TODO
 
     @property
     def pieces(self):
