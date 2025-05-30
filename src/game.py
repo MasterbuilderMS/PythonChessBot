@@ -2,7 +2,7 @@
 
 import os
 import pygame
-from board import Board, Piece
+from board import Board, Piece, Move, Square
 
 
 WIDTH = 800
@@ -93,21 +93,37 @@ class Main:
             pygame.Rect(self.x_offset, self.y_offset, board_px, board_px)
         )
         self.board_renderer = BoardRenderer(self.board_surface, SQSIZE, origin=(self.x_offset, self.y_offset))  # fmt: off
-        # subsurface, so things can omre easily be placed on the board
+        # subsurface, so things can more easily be placed on the board
 
         self.clock = pygame.time.Clock()
-        self.pieces = pygame.sprite.Group()  # all sprites on the board
+        self.pieces: pygame.sprite.Group = (
+            pygame.sprite.Group()
+        )  # all sprites on the board
         self.update_pieces()
         self.dragger = Dragger()  # dragging pieces
 
+    # board display methods
     def update_pieces(self):
         self.pieces.empty()
         for i in self.board.pieces:
             self.pieces.add(PieceSprite(i))
 
+    def show_moves(self, row, col):
+        piece = self.board[row, col].piece
+        if piece is not None:
+            surface = self.board_surface
+            for move in self.board.get_piece_moves(row, col):
+                row, col = move.final.row, move.final.column
+                x = col * SQSIZE
+                y = row * SQSIZE
+                highlight = pygame.Surface((SQSIZE, SQSIZE), pygame.SRCALPHA)
+                highlight.fill((0, 255, 0, 100))  # TODO replace later with theme
+                surface.blit(highlight, (x, y))
+
     def mainloop(self):
         running = True
         while running:
+            # events
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
@@ -121,7 +137,9 @@ class Main:
                         local_y = my - self.y_offset
                         for sprite in self.pieces:
                             if sprite.rect.collidepoint((local_x, local_y)):
+                                # print(sprite.piece.moves)
                                 self.dragger.drag(sprite.piece, sprite)
+                                self.show_moves(sprite.piece.row, sprite.piece.column)
                                 break
                     else:
                         mouse_x, mouse_y = pygame.mouse.get_pos()
@@ -133,10 +151,16 @@ class Main:
                         rank = max(0, min(7, rank))
 
                         # Update piece position
-                        self.dragger.piece.row = rank
-                        self.dragger.piece.column = file
+                        initial = Square(
+                            self.dragger.piece.row, self.dragger.piece.column
+                        )
+                        final = Square(rank, file)
+                        # valid move:
+                        move = Move(initial, final, self.dragger.piece)
+                        if move in self.board.get_piece_moves(self.dragger.piece.row, self.dragger.piece.column):  # fmt: off
+                            self.board.move_piece(Move(initial, final))
+                            self.update_pieces()
                         self.dragger.sprite.update_position()
-
                         self.dragger.undrag()
 
                 elif event.type == pygame.MOUSEMOTION:
@@ -168,7 +192,11 @@ class Main:
                     self.board_renderer.surface = self.board_surface
 
             self.board_renderer.draw_board()
+            self.board_renderer.draw_coordinates()
             self.pieces.draw(self.board_surface)
+            if self.dragger.piece is not None:
+                self.show_moves(self.dragger.piece.row, self.dragger.piece.column)
+
             if self.dragger.dragging and self.dragger.sprite:
                 self.board_surface.blit(
                     self.dragger.sprite.image, self.dragger.sprite.rect
