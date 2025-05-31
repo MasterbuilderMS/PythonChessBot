@@ -7,7 +7,7 @@ from board import Board, Piece, Move, Square
 
 WIDTH = 800
 HEIGHT = 800
-SQSIZE = 80
+SQUARE_SIZE = 80
 
 
 class PieceSprite(pygame.sprite.Sprite):
@@ -22,7 +22,7 @@ class PieceSprite(pygame.sprite.Sprite):
         self.update_position()
 
     def update_position(self):
-        self.rect.topleft = (self.col * SQSIZE, self.row * SQSIZE)
+        self.rect.topleft = (self.col * SQUARE_SIZE, self.row * SQUARE_SIZE)
 
     @property
     def row(self):
@@ -85,14 +85,14 @@ class Main:
     def __init__(self):
         pygame.init()
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
-        board_px = SQSIZE * 8
+        board_px = SQUARE_SIZE * 8
         self.x_offset = (WIDTH - board_px) // 2
         self.y_offset = (HEIGHT - board_px) // 2
         self.board = Board()
         self.board_surface = self.screen.subsurface(
             pygame.Rect(self.x_offset, self.y_offset, board_px, board_px)
         )
-        self.board_renderer = BoardRenderer(self.board_surface, SQSIZE, origin=(self.x_offset, self.y_offset))  # fmt: off
+        self.board_renderer = BoardRenderer(self.board_surface, SQUARE_SIZE, origin=(self.x_offset, self.y_offset))  # fmt: off
         # subsurface, so things can more easily be placed on the board
 
         self.clock = pygame.time.Clock()
@@ -114,9 +114,9 @@ class Main:
             surface = self.board_surface
             for move in self.board.get_piece_moves(row, col):
                 row, col = move.final.row, move.final.column
-                x = col * SQSIZE
-                y = row * SQSIZE
-                highlight = pygame.Surface((SQSIZE, SQSIZE), pygame.SRCALPHA)
+                x = col * SQUARE_SIZE
+                y = row * SQUARE_SIZE
+                highlight = pygame.Surface((SQUARE_SIZE, SQUARE_SIZE), pygame.SRCALPHA)
                 highlight.fill((0, 255, 0, 100))  # TODO replace later with theme
                 surface.blit(highlight, (x, y))
 
@@ -143,8 +143,8 @@ class Main:
                                 break
                     else:
                         mouse_x, mouse_y = pygame.mouse.get_pos()
-                        file = (mouse_x - self.x_offset) // SQSIZE
-                        rank = (mouse_y - self.y_offset) // SQSIZE
+                        file = (mouse_x - self.x_offset) // SQUARE_SIZE
+                        rank = (mouse_y - self.y_offset) // SQUARE_SIZE
 
                         # Clamp to board boundaries
                         file = max(0, min(7, file))
@@ -173,8 +173,8 @@ class Main:
                 # display events
                 if event.type == pygame.VIDEORESIZE:
                     # TODO fix screen resizing
-                    MIN_WIDTH = SQSIZE * 8 + 6
-                    MIN_HEIGHT = SQSIZE * 8 + 6
+                    MIN_WIDTH = SQUARE_SIZE * 8 + 6
+                    MIN_HEIGHT = SQUARE_SIZE * 8 + 6
 
                     new_width = max(event.w, MIN_WIDTH)
                     new_height = max(event.h, MIN_HEIGHT)
@@ -182,7 +182,7 @@ class Main:
                         (new_width, new_height), pygame.RESIZABLE
                     )
 
-                    board_px = SQSIZE * 8
+                    board_px = SQUARE_SIZE * 8
                     self.x_offset = (event.w - board_px) // 2
                     self.y_offset = (event.h - board_px) // 2
 

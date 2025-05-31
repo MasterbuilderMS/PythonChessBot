@@ -93,6 +93,15 @@ class Board(object):
     def __setitem__(self, pos, other) -> None:
         self.board[pos[0]][pos[1]] = other
 
+    def set_true_en_passant(self, piece):
+        if isinstance(piece, Pawn):
+            for row in range(8):
+                for col in range(8):
+                    other_piece = self.board[row][col].piece
+                    if isinstance(other_piece, Pawn):
+                        other_piece.has_moved_two = False
+            piece.has_moved_two = True
+
     def move_piece(self, move: Move):
         # Remove from old square
         initial = self.board[move.initial.row][move.initial.column]
@@ -102,6 +111,7 @@ class Board(object):
         if final.piece is not None:
             final.piece = None
         temp = initial.piece
+        self.set_true_en_passant(temp)
         # castling
         if isinstance(temp, King):
             if abs(move.final.column - move.initial.column) == 2:
@@ -123,6 +133,15 @@ class Board(object):
                     rook_piece.has_moved = True
                     rook_initial.piece = None
                     rook_final.piece = rook_piece
+        # en passant
+        if isinstance(temp, Pawn):
+            # empty and moved diagonally
+            if final.empty() and initial.column - final.column != 0:
+                if initial.column < final.column:
+                    self.board[move.initial.row][move.initial.column + 1].piece = None
+                else:
+                    self.board[move.initial.row][move.initial.column - 1].piece = None
+
         temp.column = move.final.column
         temp.row = move.final.row
         temp.has_moved = True
@@ -180,8 +199,6 @@ class Board(object):
             initial = Square(row, column)
             moves = []
             if isinstance(piece, Pawn):
-                # TODO - Add en-passant :(
-
                 #  move directly ahead
                 for move in piece.moves:
                     if self.board[move[0]][move[1]].empty():
@@ -197,6 +214,15 @@ class Board(object):
                         if self.board[capture[0]][capture[1]].has_enemy(piece.color):
                             final = Square(capture[0], capture[1])
                             moves.append(Move(initial, final, piece))
+                # en passant
+                for offset in [-1, 1]:  # left, right
+                    if self.board[row][column - offset].has_enemy(piece.color):
+                        other_piece = self.board[row][column + offset].piece
+                        if isinstance(other_piece, Pawn):
+                            if other_piece.has_moved_two:
+                                final = Square(row - piece.direction, column + offset)
+                                moves.append(Move(initial, final, piece))
+
             elif isinstance(piece, Knight):
                 for move in piece.moves:
                     if not self.board[move[0]][move[1]].has_team(piece.color):
@@ -268,7 +294,6 @@ class Board(object):
                             moves.append(
                                 Move(initial, Square(row, column - 2, piece), piece)
                             )
-
             elif isinstance(piece, Bishop):
                 for move in self.calculate_straight_moves(
                     row, column, [(1, 1), (1, -1), (-1, -1), (-1, 1)]

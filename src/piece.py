@@ -33,6 +33,7 @@ class Pawn(Piece):
     def __init__(self, row, column, color):
         super().__init__("pawn", row, column, color)
         self.direction = 1 if color == "white" else -1
+        self.has_moved_two = False  # whether the pawn has just moved 2
 
     @property
     def moves(self):
