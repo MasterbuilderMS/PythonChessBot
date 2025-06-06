@@ -1,0 +1,17 @@
+gui, uci
+engine, id name OrderedAlphaBetaBot
+engine, id author Michael
+engine, uciok
+gui, isready
+engine, readyok
+gui, position fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 moves e2e4
+gui, go infinite
+engine, bestmove e7e6
+gui, stop
+gui, position fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+gui, go infinite
+gui, stop
+gui, position fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 moves e2e4
+gui, go infinite
+engine, bestmove e2e3
+engine, bestmove e7e6
