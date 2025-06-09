@@ -656,7 +656,7 @@ class OrderedAlphaBetaBot(Player):
 
         if board.turn == maximizing_player:
             max_eval = float("-inf")
-            for move in board.legal_moves:
+            for move in self.ordered_legal_moves(board):  # Use ordered moves
                 board.push(move)
                 eval = self.evaluate_move(
                     board, depth - 1, alpha, beta, maximizing_player
@@ -669,7 +669,7 @@ class OrderedAlphaBetaBot(Player):
             return max_eval
         else:
             min_eval = float("inf")
-            for move in board.legal_moves:
+            for move in self.ordered_legal_moves(board):  # Use ordered moves
                 board.push(move)
                 eval = self.evaluate_move(
                     board, depth - 1, alpha, beta, maximizing_player
