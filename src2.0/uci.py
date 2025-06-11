@@ -1,5 +1,4 @@
 import chess
-import sys
 from bot import ChessBot
 
 

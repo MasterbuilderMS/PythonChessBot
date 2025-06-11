@@ -1,5 +1,4 @@
 import chess
-from functools import cache
 
 SEARCH_DEPTH = 2
 
@@ -68,82 +67,57 @@ class ChessBot(Player):
         scored_moves.sort(reverse=True, key=lambda x: x[0])
         return [move for _, move in scored_moves]
 
-    def evaluate_move(
-        self, board: chess.Board, depth, alpha, beta, color_sign: int, my_color: bool
-    ):
+    def evaluate_move(self, board, depth, alpha, beta, maximizing_player, my_color):
         board_key = board.fen()
-        tt_key = (board_key, depth)
+        tt_key = (board_key, depth, maximizing_player)
 
-        # check in transposition table
         if tt_key in self.transposition_table:
             return self.transposition_table[tt_key]
 
         if depth == 0 or board.is_game_over():
-            score = color_sign * self.evaluate(board, board.turn)
-            self.transposition_table[tt_key] = score
-            return score
+            return self.evaluate(board, my_color)
 
-        max_score = float("-inf")
-
-        for move in self.ordered_legal_moves(board):
-            board.push(move)
-            score = -self.evaluate_move(
-                board, depth - 1, -beta, -alpha, -color_sign, my_color
-            )
-            board.pop()
-            max_score = max(max_score, score)
-            alpha = max(alpha, score)
-            if alpha >= beta:
-                break
-
-        self.transposition_table[tt_key] = max_score
-        return max_score
-        """
-        if board.turn == maximizing_player:
+        if maximizing_player:
             max_eval = float("-inf")
             for move in self.ordered_legal_moves(board):
                 board.push(move)
                 eval = self.evaluate_move(
-                    board, depth - 1, alpha, beta, maximizing_player
+                    board, depth - 1, alpha, beta, False, my_color
                 )
                 board.pop()
                 max_eval = max(max_eval, eval)
                 alpha = max(alpha, eval)
                 if beta <= alpha:
                     break
+            self.transposition_table[tt_key] = max_eval
             return max_eval
         else:
             min_eval = float("inf")
             for move in self.ordered_legal_moves(board):
                 board.push(move)
-                eval = self.evaluate_move(
-                    board, depth - 1, alpha, beta, maximizing_player
-                )
+                eval = self.evaluate_move(board, depth - 1, alpha, beta, True, my_color)
                 board.pop()
                 min_eval = min(min_eval, eval)
                 beta = min(beta, eval)
                 if beta <= alpha:
                     break
-            return min_eval"""
+            self.transposition_table[tt_key] = min_eval
+            return min_eval
 
     def choose_move(self, board: chess.Board) -> chess.Move | None:
-        best_move = None
-        best_score = float("-inf")
-        # alpha beta pruning
-        alpha = float("-inf")
-        beta = float("inf")
         my_color = board.turn
-        color_sign = 1 if my_color == chess.WHITE else -1
-        self.transposition_table.clear()
+        best_score = float("-inf")
+        best_move = None
+        alpha, beta = float("-inf"), float("inf")
 
         for move in board.legal_moves:
             board.push(move)
-            score = -self.evaluate_move(
-                board, SEARCH_DEPTH, -beta, -alpha, -color_sign, my_color
+            score = self.evaluate_move(
+                board, SEARCH_DEPTH - 1, alpha, beta, False, my_color
             )
             board.pop()
             if score > best_score:
                 best_score = score
                 best_move = move
-
+            alpha = max(alpha, best_score)
         return best_move
