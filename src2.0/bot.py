@@ -46,33 +46,21 @@ class ChessBot(Player):
             score += self.weights[move.promotion] * 10  # prioritize queen promotions
         return score
 
-    def get_material(self, board):
+    def get_material(self, board, my_color):
         return sum(
-            self.weights[piece.piece_type] for piece in board.piece_map().values()
+            self.weights[piece.piece_type]
+            for square, piece in board.piece_map().items()
+            if piece.color == my_color
         )
 
     def evaluate(self, board: chess.Board, my_color: bool) -> float:
-        material = self.get_material(board)
+        my_material = self.get_material(board, my_color)
+        opponent_material = self.get_material(board, not my_color)
+        material_balance = my_material - opponent_material
 
-        # Add positional considerations
-        mobility = board.legal_moves.count() * 0.1  # bonus for mobility
-        score = 0
+        mobility = board.legal_moves.count() * 0.1 if board.turn == my_color else 0
 
-        # for piece_type in range(1, 6):
-        #    for color in [chess.WHITE, chess.BLACK]:
-        #        table = PIECE_SQUARE_TABLES[(piece_type, color)]
-        #        for square in board.pieces(piece_type, color):
-        #            value = table[square]
-        ##            if color == chess.WHITE:
-        #                score += value
-        #            else:
-        #                score -= value
-
-        # Penalize repeated moves (basic repetition detector)
-        # if board.can_claim_threefold_repetition():
-        #    material -= 1
-
-        return material + mobility + (score * 0.1)
+        return material_balance + mobility
 
     def ordered_legal_moves(self, board):
         moves = board.legal_moves
@@ -80,8 +68,10 @@ class ChessBot(Player):
         scored_moves.sort(reverse=True, key=lambda x: x[0])
         return [move for _, move in scored_moves]
 
-    def evaluate_move(self, board: chess.Board, depth, alpha, beta, color_sign: int):
-        board_key = board._transposition_key()
+    def evaluate_move(
+        self, board: chess.Board, depth, alpha, beta, color_sign: int, my_color: bool
+    ):
+        board_key = board.fen()
         tt_key = (board_key, depth)
 
         # check in transposition table
@@ -97,7 +87,9 @@ class ChessBot(Player):
 
         for move in self.ordered_legal_moves(board):
             board.push(move)
-            score = -self.evaluate_move(board, depth - 1, -beta, -alpha, -color_sign)
+            score = -self.evaluate_move(
+                board, depth - 1, -beta, -alpha, -color_sign, my_color
+            )
             board.pop()
             max_score = max(max_score, score)
             alpha = max(alpha, score)
@@ -146,93 +138,8 @@ class ChessBot(Player):
 
         for move in board.legal_moves:
             board.push(move)
-            score = -self.evaluate_move(board, SEARCH_DEPTH, -beta, -alpha, -color_sign)
-            board.pop()
-            if score > best_score:
-                best_score = score
-                best_move = move
-
-        return best_move
-
-
-class AlphaBetaBot(Player):
-    def __init__(self):
-        super().__init__(is_human=False)
-        self.weights = {
-            chess.PAWN: 1,
-            chess.KNIGHT: 3,
-            chess.BISHOP: 3.5,
-            chess.ROOK: 5,
-            chess.QUEEN: 9,
-            chess.KING: 0,  # Don't include king in material count
-        }
-
-    def get_material(self, board: chess.Board, color: bool) -> float:
-        return sum(
-            len(board.pieces(pt, color)) * val for pt, val in self.weights.items()
-        )
-
-    def evaluate(self, board: chess.Board, my_color: bool) -> float:
-        """Simple evaluation: material difference"""
-        return self.get_material(board, my_color) - self.get_material(
-            board, not my_color
-        )
-
-    def minimax(
-        self,
-        board: chess.Board,
-        depth: int,
-        alpha,
-        beta,
-        is_maximizing: bool,
-        my_color: bool,
-    ) -> float:
-        # set fixed depth
-        if depth == 0 or board.is_game_over():
-            return self.evaluate(board, my_color)
-
-        if is_maximizing:
-            eval = float("-inf")
-            for move in board.legal_moves:
-                board.push(move)
-                eval = max(
-                    eval, self.minimax(board, depth - 1, alpha, beta, False, my_color)
-                )
-                board.pop()
-                alpha = max(alpha, eval)
-                if beta <= alpha:
-                    break
-            return eval
-        else:
-            eval = float("inf")
-            for move in board.legal_moves:
-                board.push(move)
-                eval = max(
-                    eval, self.minimax(board, depth - 1, alpha, beta, True, my_color)
-                )
-                board.pop()
-                beta = min(beta, eval)
-                if beta <= alpha:
-                    break
-            return eval
-
-    def choose_move(self, board: chess.Board) -> chess.Move | None:
-        best_move = None
-        best_score = float("-inf")
-        # alpha beta pruning
-        alpha = float("-inf")
-        beta = float("inf")
-        my_color = board.turn
-
-        for move in board.legal_moves:
-            board.push(move)
-            score = self.minimax(
-                board,
-                depth=SEARCH_DEPTH,
-                alpha=alpha,
-                beta=beta,
-                is_maximizing=False,
-                my_color=my_color,
+            score = -self.evaluate_move(
+                board, SEARCH_DEPTH, -beta, -alpha, -color_sign, my_color
             )
             board.pop()
             if score > best_score:

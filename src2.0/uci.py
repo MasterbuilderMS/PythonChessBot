@@ -1,6 +1,6 @@
 import chess
 import sys
-from bot import ChessBot, AlphaBetaBot
+from bot import ChessBot
 
 
 def main():
