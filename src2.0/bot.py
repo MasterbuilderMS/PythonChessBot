@@ -59,7 +59,15 @@ class ChessBot(Player):
 
         mobility = board.legal_moves.count() * 0.1 if board.turn == my_color else 0
 
-        return material_balance + mobility
+        # king distance bonus
+        king_square = board.king(not my_color)
+        king_file = chess.square_file(king_square)
+        king_rank = chess.square_rank(king_square)
+        king_dist = (
+            min(king_file, 8 - king_file) + min(king_rank, 8 - king_rank)
+        ) * 0.1
+
+        return material_balance + mobility + king_dist
 
     def ordered_legal_moves(self, board):
         moves = board.legal_moves
@@ -115,6 +123,7 @@ class ChessBot(Player):
             score = self.evaluate_move(
                 board, SEARCH_DEPTH - 1, alpha, beta, False, my_color
             )
+            score -= board.can_claim_threefold_repetition() * 4
             board.pop()
             if score > best_score:
                 best_score = score
