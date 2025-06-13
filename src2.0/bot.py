@@ -1,6 +1,6 @@
 import chess
 
-SEARCH_DEPTH = 2
+SEARCH_DEPTH = 4
 
 
 class Player:
@@ -35,9 +35,8 @@ class ChessBot(Player):
                 )
         return 0
 
-    def score_move(self, move, board):
+    def score_move(self, move, board: chess.Board):
         score = self.mvv_lva(move, board)
-
         if board.gives_check(move):
             # good move
             score += 5
@@ -75,15 +74,42 @@ class ChessBot(Player):
         scored_moves.sort(reverse=True, key=lambda x: x[0])
         return [move for _, move in scored_moves]
 
-    def evaluate_move(self, board, depth, alpha, beta, maximizing_player, my_color):
-        board_key = board.fen()
-        tt_key = (board_key, depth, maximizing_player)
+    def quiescence(self, board, alpha, beta, my_color):
+        stand_pat = self.evaluate(board, my_color)
+        if stand_pat >= beta:
+            return beta
+        if alpha < stand_pat:
+            alpha = stand_pat
+
+        for move in self.ordered_legal_moves(board):
+            if board.is_capture(move) or board.gives_check(move) or move.promotion:
+                board.push(move)
+                score = -self.quiescence(board, -beta, -alpha, not my_color)
+                board.pop()
+
+                if score >= beta:
+                    return beta
+                if score > alpha:
+                    alpha = score
+        return alpha
+
+    def evaluate_move(
+        self, board: chess.Board, depth, alpha, beta, maximizing_player, my_color
+    ):
+        board_key = board.board_fen()
+        tt_key = (
+            board_key,
+            depth,
+            maximizing_player,
+            board.castling_rights,
+            board.ep_square,
+        )
 
         if tt_key in self.transposition_table:
             return self.transposition_table[tt_key]
 
         if depth == 0 or board.is_game_over():
-            return self.evaluate(board, my_color)
+            return self.quiescence(board, alpha, beta, my_color)
 
         if maximizing_player:
             max_eval = float("-inf")
@@ -124,6 +150,7 @@ class ChessBot(Player):
                 board, SEARCH_DEPTH - 1, alpha, beta, False, my_color
             )
             score -= board.can_claim_threefold_repetition() * 4
+            score += board.is_checkmate() * 10000000
             board.pop()
             if score > best_score:
                 best_score = score
