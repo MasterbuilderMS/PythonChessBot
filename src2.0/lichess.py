@@ -1,7 +1,9 @@
 import berserk
 import random
+import os
 
-TOKEN = "lip_KY7PMgDuITXRvhrffx7a"
+
+TOKEN = os.environ["ChessToken"]
 session = berserk.TokenSession(TOKEN)
 client = berserk.Client(session=session)
 
